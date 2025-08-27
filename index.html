@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PNG → WebP Converter – All‑in‑One</title>
+  <style>
+    :root {
+      --bg: #0b0c0f; --card:#12141a; --muted:#a7b0c0; --text:#e7ecf4; --accent:#66e3a2;
+      --border:#232733; --danger:#ff6b6b; --warn:#ffd166; --link:#93c5fd;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial}
+    a{color:var(--link)}
+    header{position:sticky;top:0;background:rgba(11,12,15,.7);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);z-index:50}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    .nav{display:flex;align-items:center;gap:12px}
+    .brand{display:flex;align-items:center;gap:10px}
+    .logo{height:36px;width:36px;border-radius:10px;background:linear-gradient(135deg,#111,#1f2937);display:grid;place-items:center;border:1px solid var(--border)}
+    .tabs{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+    .tab{padding:8px 12px;border:1px solid var(--border);border-radius:10px;background:var(--card);cursor:pointer}
+    .tab.active{outline:2px solid var(--accent);outline-offset:0}
+    main{padding:24px}
+    section{display:none}
+    section.active{display:block}
+
+    /* Cards & layout */
+    .grid{display:grid;gap:16px}
+    @media(min-width:800px){.grid.cols-3{grid-template-columns:repeat(3,1fr)}.grid.cols-2{grid-template-columns:repeat(2,1fr)}}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 1px 0 rgba(255,255,255,0.03) inset}
+    .card h3{margin:0 0 8px}
+    .card .body{padding:16px}
+    .muted{color:var(--muted)}
+    .btn{padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:#151822;color:var(--text);cursor:pointer}
+    .btn.primary{background:var(--accent);color:#07110b;border-color:transparent}
+    .btn.ghost{background:transparent}
+    .btn.warn{background:var(--warn);color:#1f1300;border-color:transparent}
+    .btn.danger{background:var(--danger);color:#2b0909;border-color:transparent}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    input[type="range"]{width:220px}
+
+    .drop{border:2px dashed var(--border);border-radius:20px;padding:32px;text-align:center;background:linear-gradient(180deg,rgba(255,255,255,0.03),transparent)}
+    .preview{background:#0f1218;border-top:1px solid var(--border);padding:12px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .thumb{width:100%;aspect-ratio:16/9;background:#0c0f14;display:grid;place-items:center;border-bottom:1px solid var(--border)}
+    .thumb img{max-width:100%;max-height:260px}
+    .kpi{display:flex;gap:8px;flex-wrap:wrap}
+    .pill{font-size:12px;padding:6px 8px;border-radius:999px;border:1px solid var(--border);background:#0e1016}
+
+    .table{width:100%;border-collapse:collapse}
+    .table th,.table td{border-bottom:1px solid var(--border);padding:10px;text-align:left}
+
+    .gallery{display:grid;gap:16px}
+    @media(min-width:700px){.gallery{grid-template-columns:repeat(3,1fr)}}
+    .gitem{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+    .gitem .meta{padding:10px;display:flex;justify-content:space-between;align-items:center}
+    .small{font-size:12px}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap nav">
+      <div class="brand">
+        <div class="logo">🖼️</div>
+        <div>
+          <div style="font-weight:700">PNG → WebP Converter</div>
+          <div class="small muted">Fast, private, in‑browser tools</div>
+        </div>
+      </div>
+      <div class="tabs" id="tabs"></div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- Home / Converter -->
+    <section id="page-home" class="active">
+      <div class="grid cols-2">
+        <div class="card">
+          <div class="body">
+            <h3>Convert Images</h3>
+            <p class="muted">Drag & drop images below or click to select. Everything happens on your device. Transparency is preserved.</p>
+            <div class="row" style="align-items:center">
+              <button class="btn primary" id="btn-choose">Choose images</button>
+              <input type="file" id="file-input" accept="image/*" multiple hidden>
+              <label>Quality</label>
+              <input type="range" id="quality" min="0.1" max="1" step="0.05" value="0.9">
+              <span id="quality-val">90</span>
+              <button class="btn" id="btn-convert-all">Convert all</button>
+              <button class="btn" id="btn-zip" disabled>Download .zip</button>
+              <button class="btn ghost" id="btn-clear">Clear</button>
+            </div>
+          </div>
+          <div id="drop" class="drop">Drop PNG/JPG/WebP here</div>
+        </div>
+        <div class="card">
+          <div class="body">
+            <h3>Summary</h3>
+            <div id="summary" class="kpi">
+              <div class="pill">Files: <b id="k-files">0</b></div>
+              <div class="pill">Original: <b id="k-orig">0 B</b></div>
+              <div class="pill">WebP: <b id="k-webp">0 B</b></div>
+              <div class="pill">Saved: <b id="k-saved">0 B</b></div>
+            </div>
+            <p class="small muted" style="margin-top:8px">Tip: Use a lower quality (e.g., 70–85) for much smaller files with minimal visual loss.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <div class="body">
+          <h3>Conversions</h3>
+          <div class="muted small" id="conv-note">Add images to start converting.</div>
+          <div id="conversions" class="grid cols-3" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pricing -->
+    <section id="page-pricing">
+      <div class="grid cols-3">
+        <div class="card"><div class="body"><h3>Free</h3><p class="muted">Basic conversion, local gallery</p><h2>$0</h2><ul><li>Up to 25 images/session</li><li>ZIP download</li><li>Email support (48h)</li></ul></div></div>
+        <div class="card"><div class="body"><h3>Pro</h3><p class="muted">For power users</p><h2>$5/mo</h2><ul><li>Unlimited images</li><li>Batch rename</li><li>Priority support</li></ul><button class="btn primary">Get Pro</button></div></div>
+        <div class="card"><div class="body"><h3>Business</h3><p class="muted">Team workflows</p><h2>$15/mo</h2><ul><li>Team seats</li><li>Brand presets</li><li>Admin controls</li></ul><button class="btn primary">Contact Sales</button></div></div>
+      </div>
+    </section>
+
+    <!-- Marketing -->
+    <section id="page-marketing">
+      <div class="grid cols-2">
+        <div class="card"><div class="body"><h3>Why WebP?</h3><ul><li>🚀 Loads faster: typically 25–70% smaller than PNG/JPG</li><li>📈 Better Core Web Vitals → SEO boost</li><li>🧊 Alpha transparency supported</li><li>🌐 Works in all modern browsers</li></ul></div></div>
+        <div class="card"><div class="body"><h3>How it works</h3><ol><li>Images are decoded locally</li><li>Drawn onto a Canvas</li><li>Encoded to WebP with your quality</li><li>Saved to your device and Gallery (IndexedDB)</li></ol></div></div>
+      </div>
+    </section>
+
+    <!-- Products -->
+    <section id="page-products">
+      <div class="grid cols-3">
+        <div class="card"><div class="body"><h3>Image Optimizer</h3><p class="muted">Compress & resize with presets</p><button class="btn">Learn more</button></div></div>
+        <div class="card"><div class="body"><h3>Video Converter</h3><p class="muted">MP4/WebM, thumbnails, trims</p><button class="btn">Learn more</button></div></div>
+        <div class="card"><div class="body"><h3>File Tools Suite</h3><p class="muted">PDF merge/split, docs</p><button class="btn">Learn more</button></div></div>
+      </div>
+    </section>
+
+    <!-- Gallery -->
+    <section id="page-gallery">
+      <div class="row" style="margin-bottom:12px">
+        <button class="btn" id="btn-refresh-gallery">Refresh</button>
+        <button class="btn" id="btn-export-gallery">Export all as .zip</button>
+        <button class="btn danger" id="btn-clear-gallery">Clear gallery</button>
+        <span class="muted small" id="g-count"></span>
+      </div>
+      <div class="gallery" id="gallery"></div>
+    </section>
+  </main>
+
+  <footer class="wrap" style="padding-bottom:40px;color:var(--muted)">
+    <hr style="border-color:var(--border);border-width:0;border-top:1px solid var(--border);margin:20px 0"/>
+    <div class="row" style="justify-content:space-between">
+      <div>© <span id="year"></span> PNG → WebP Tools</div>
+      <div class="small">All conversions happen locally • EXIF not retained</div>
+    </div>
+  </footer>
+
+  <!-- JSZip for ZIP features (UMD build) -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+  <script>
+  // ---------- Utilities ----------
+  const $ = (s, r=document) => r.querySelector(s);
+  const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+  const formatBytes = (bytes) => {
+    if (bytes == null) return '—';
+    if (bytes < 1024) return bytes + ' B';
+    const kb = bytes/1024; if (kb < 1024) return kb.toFixed(1)+' KB';
+    return (kb/1024).toFixed(2)+' MB';
+  };
+  const nowISO = () => new Date().toISOString();
+
+  function downloadBlob(blob, filename){
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 500);
+  }
+
+  async function canvasToBlob(canvas, type, quality){
+    if (canvas.toBlob) return await new Promise(res=>canvas.toBlob(res, type, quality));
+    const dataUrl = canvas.toDataURL(type, quality);
+    const b64 = dataUrl.split(',')[1];
+    const bin = atob(b64); const arr = new Uint8Array(bin.length);
+    for (let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+    return new Blob([arr], {type});
+  }
+
+  async function decodeDrawable(file, fallbackUrl){
+    try{ if (typeof createImageBitmap === 'function') return await createImageBitmap(file); }catch(e){}
+    const img = new Image(); img.decoding = 'async';
+    const src = fallbackUrl || URL.createObjectURL(file);
+    return await new Promise((resolve, reject)=>{ img.onload=()=>resolve(img); img.onerror=reject; img.src=src; });
+  }
+
+  // ---------- Router (tabs) ----------
+  const PAGES=[['home','Home'],['pricing','Pricing'],['marketing','Marketing'],['products','Products'],['gallery','Gallery']];
+  const tabs = $('#tabs');
+  PAGES.forEach(([id,label],i)=>{
+    const b=document.createElement('button'); b.className='tab'+(i===0?' active':''); b.textContent=label; b.dataset.page=id; tabs.appendChild(b);
+  });
+  tabs.addEventListener('click', (e)=>{
+    const btn=e.target.closest('.tab'); if(!btn) return;
+    $$('.tab').forEach(t=>t.classList.toggle('active', t===btn));
+    const id=btn.dataset.page; $$('main section').forEach(s=>s.classList.toggle('active', s.id===`page-${id}`));
+    if (id==='gallery') refreshGallery();
+  });
+
+  // ---------- Converter State ----------
+  const state={ items:[] }; // {id, file, name, url, status, webpBlob, webpUrl, origBytes, webpBytes, error}
+  let QUALITY = 0.9;
+
+  const elInput = $('#file-input');
+  const elChoose = $('#btn-choose');
+  const elDrop = $('#drop');
+  const elConvertAll = $('#btn-convert-all');
+  const elZip = $('#btn-zip');
+  const elClear = $('#btn-clear');
+  const elQuality = $('#quality');
+  const elQVal = $('#quality-val');
+  const elConvGrid = $('#conversions');
+  const elConvNote = $('#conv-note');
+  const kFiles=$('#k-files'), kOrig=$('#k-orig'), kWebp=$('#k-webp'), kSaved=$('#k-saved');
+
+  elChoose.onclick = ()=> elInput.click();
+  elInput.onchange = ()=> handleFiles(elInput.files);
+  elDrop.ondragover = (e)=>{e.preventDefault(); elDrop.style.borderColor='var(--accent)'};
+  elDrop.ondragleave = ()=>{elDrop.style.borderColor='var(--border)'};
+  elDrop.ondrop = (e)=>{e.preventDefault(); elDrop.style.borderColor='var(--border)'; handleFiles(e.dataTransfer.files)};
+  elQuality.oninput = ()=>{ QUALITY = parseFloat(elQuality.value); elQVal.textContent = Math.round(QUALITY*100); };
+  elConvertAll.onclick = ()=> convertAll();
+  elClear.onclick = ()=> clearAll();
+
+  function addItems(files){
+    const arr = Array.from(files).filter(f=>f.type.startsWith('image/'));
+    arr.forEach((file,idx)=>{
+      const id = `${Date.now()}-${idx}-${Math.random().toString(36).slice(2,7)}`;
+      const url = URL.createObjectURL(file);
+      state.items.push({ id, file, name:file.name, url, status:'pending', webpBlob:null, webpUrl:null, origBytes:file.size, webpBytes:null, error:null });
+    });
+    render();
+  }
+
+  function handleFiles(files){ addItems(files); convertAll(); }
+
+  async function convertOne(item){
+    try{
+      item.status='converting'; renderItem(item);
+      const drawable = await decodeDrawable(item.file, item.url);
+      const w = drawable.width || drawable.naturalWidth; const h = drawable.height || drawable.naturalHeight;
+      const canvas = document.createElement('canvas'); canvas.width=w; canvas.height=h;
+      const ctx = canvas.getContext('2d'); ctx.drawImage(drawable,0,0);
+      const blob = await canvasToBlob(canvas, 'image/webp', QUALITY);
+      if(!blob || blob.type!=='image/webp') throw new Error('WebP not supported by this browser');
+      const url = URL.createObjectURL(blob);
+      item.status='done'; item.webpBlob=blob; item.webpUrl=url; item.webpBytes=blob.size; item.error=null;
+      renderItem(item);
+    }catch(err){ item.status='error'; item.error=String(err.message||err); renderItem(item); }
+  }
+
+  async function convertAll(){
+    for(const item of state.items){ if(item.status==='done') continue; await convertOne(item); }
+    updateSummary(); updateZipButton();
+  }
+
+  function clearAll(){
+    state.items.forEach(it=>{ if(it.url) URL.revokeObjectURL(it.url); if(it.webpUrl) URL.revokeObjectURL(it.webpUrl); });
+    state.items.length=0; render(); updateZipButton();
+  }
+
+  function updateSummary(){
+    const orig = state.items.reduce((a,b)=>a+(b.origBytes||0),0);
+    const webp = state.items.reduce((a,b)=>a+(b.webpBytes||0),0);
+    kFiles.textContent = state.items.length;
+    kOrig.textContent = formatBytes(orig);
+    kWebp.textContent = formatBytes(webp);
+    kSaved.textContent = formatBytes(Math.max(0, orig - webp));
+  }
+
+  function updateZipButton(){ elZip.disabled = !state.items.some(i=>i.webpBlob); }
+
+  elZip.onclick = async ()=>{
+    if(typeof JSZip==='undefined'){ alert('Zip library not loaded'); return; }
+    const zip = new JSZip(); const folder = zip.folder('webp-images');
+    state.items.forEach(it=>{ if(it.webpBlob){ const base=it.name.replace(/\.[^.]+$/, ''); folder.file(base+'.webp', it.webpBlob); } });
+    const blob = await zip.generateAsync({type:'blob'});
+    downloadBlob(blob, 'converted-'+new Date().toISOString().slice(0,10)+'.zip');
+  };
+
+  function render(){
+    elConvGrid.innerHTML='';
+    elConvNote.style.display = state.items.length? 'none':'block';
+    state.items.forEach(it=> elConvGrid.appendChild(renderCard(it)) );
+    updateSummary(); updateZipButton();
+  }
+
+  function renderItem(item){
+    const el = document.getElementById('card-'+item.id); if(!el) return; el.replaceWith(renderCard(item)); updateSummary(); updateZipButton();
+  }
+
+  function renderCard(it){
+    const card = document.createElement('div'); card.className='card'; card.id='card-'+it.id;
+    const thumb = document.createElement('div'); thumb.className='thumb';
+    const img = document.createElement('img'); img.src = it.webpUrl || it.url; img.alt = it.name; thumb.appendChild(img);
+
+    const body = document.createElement('div'); body.className='body';
+    const h = document.createElement('h3'); h.textContent = it.name; h.title=it.name; body.appendChild(h);
+
+    const status = document.createElement('div'); status.className='muted small';
+    status.textContent = it.status==='done' ? 'Converted' : it.status==='converting' ? 'Converting…' : it.status==='error' ? ('Error: '+it.error) : 'Pending';
+    body.appendChild(status);
+
+    const meta = document.createElement('div'); meta.className='kpi';
+    meta.innerHTML = `<div class="pill">${formatBytes(it.origBytes)}</div><div class="pill">→</div><div class="pill">${it.webpBytes?formatBytes(it.webpBytes):'—'}</div>`;
+    body.appendChild(meta);
+
+    const row = document.createElement('div'); row.className='row';
+    const btnConvert = document.createElement('button'); btnConvert.className='btn'; btnConvert.textContent='Convert'; btnConvert.disabled=it.status==='converting'; btnConvert.onclick=()=>convertOne(it);
+    const btnDL = document.createElement('button'); btnDL.className='btn'; btnDL.textContent='Download WebP'; btnDL.disabled=!it.webpBlob; btnDL.onclick=()=>downloadBlob(it.webpBlob, it.name.replace(/\.[^.]+$/, '')+'.webp');
+    const btnSave = document.createElement('button'); btnSave.className='btn'; btnSave.textContent='Save to Gallery'; btnSave.disabled=!it.webpBlob; btnSave.onclick=()=>saveToGallery({name:it.name.replace(/\.[^.]+$/, '')+'.webp', blob:it.webpBlob, origBytes:it.origBytes, webpBytes:it.webpBytes});
+    const btnRemove = document.createElement('button'); btnRemove.className='btn ghost'; btnRemove.textContent='Remove'; btnRemove.onclick=()=>{ state.items=state.items.filter(x=>x.id!==it.id); if(it.url) URL.revokeObjectURL(it.url); if(it.webpUrl) URL.revokeObjectURL(it.webpUrl); render(); };
+    row.append(btnConvert, btnDL, btnSave, btnRemove); body.appendChild(row);
+
+    card.append(thumb, body); return card;
+  }
+
+  // ---------- IndexedDB Gallery ----------
+  const DB_NAME='png2webp_db'; const DB_STORE='images'; const DB_VER=1;
+  let dbPromise=null; function openDB(){ if(dbPromise) return dbPromise; dbPromise = new Promise((resolve, reject)=>{
+    const req=indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded=(e)=>{ const db=e.target.result; if(!db.objectStoreNames.contains(DB_STORE)){ const s=db.createObjectStore(DB_STORE, {keyPath:'id', autoIncrement:true}); s.createIndex('createdAt','createdAt'); }};
+    req.onsuccess=()=>resolve(req.result); req.onerror=()=>reject(req.error);
+  }); return dbPromise; }
+
+  async function saveToGallery({name, blob, origBytes, webpBytes}){
+    const db = await openDB(); await new Promise((resolve, reject)=>{
+      const tx=db.transaction(DB_STORE,'readwrite'); const st=tx.objectStore(DB_STORE);
+      st.add({ name, blob, origBytes, webpBytes, createdAt: nowISO() });
+      tx.oncomplete=resolve; tx.onerror=()=>reject(tx.error);
+    });
+    alert('Saved to Gallery: '+name);
+  }
+
+  async function listGallery(){
+    const db = await openDB(); return await new Promise((resolve, reject)=>{
+      const tx=db.transaction(DB_STORE,'readonly'); const st=tx.objectStore(DB_STORE);
+      const req=st.getAll(); req.onsuccess=()=>resolve(req.result); req.onerror=()=>reject(req.error);
+    });
+  }
+  async function deleteGallery(id){
+    const db = await openDB(); return await new Promise((resolve, reject)=>{
+      const tx=db.transaction(DB_STORE,'readwrite'); const st=tx.objectStore(DB_STORE);
+      st.delete(id); tx.oncomplete=resolve; tx.onerror=()=>reject(tx.error);
+    });
+  }
+  async function clearGallery(){
+    const db = await openDB(); return await new Promise((resolve, reject)=>{
+      const tx=db.transaction(DB_STORE,'readwrite'); const st=tx.objectStore(DB_STORE);
+      st.clear(); tx.oncomplete=resolve; tx.onerror=()=>reject(tx.error);
+    });
+  }
+
+  // ---------- Gallery UI ----------
+  const gList = $('#gallery'); const gCount=$('#g-count');
+  $('#btn-refresh-gallery').onclick = ()=> refreshGallery();
+  $('#btn-clear-gallery').onclick = async ()=>{ if(confirm('Clear all images from Gallery?')){ await clearGallery(); refreshGallery(); }};
+  $('#btn-export-gallery').onclick = async ()=>{
+    const items = await listGallery(); if(!items.length){ alert('Gallery is empty'); return; }
+    const zip = new JSZip(); items.forEach((it,i)=> zip.file(it.name || ('image-'+(i+1)+'.webp'), it.blob));
+    const blob = await zip.generateAsync({type:'blob'}); downloadBlob(blob, 'gallery-'+new Date().toISOString().slice(0,10)+'.zip');
+  };
+
+  async function refreshGallery(){
+    gList.innerHTML=''; const items = await listGallery(); gCount.textContent = `Items: ${items.length}`;
+    for(const it of items){ gList.appendChild(renderGItem(it)); }
+  }
+
+  function renderGItem(it){
+    const wrap=document.createElement('div'); wrap.className='gitem';
+    const img=document.createElement('img'); img.loading='lazy'; img.alt=it.name; img.style.width='100%'; img.style.aspectRatio='16/9'; img.style.objectFit='contain';
+    img.src=URL.createObjectURL(it.blob);
+    const meta=document.createElement('div'); meta.className='meta';
+    const left=document.createElement('div'); left.innerHTML = `<div><b>${it.name}</b></div><div class="small muted">${formatBytes(it.webpBytes||it.blob.size)} · ${new Date(it.createdAt).toLocaleString()}</div>`;
+    const right=document.createElement('div');
+    const btnDL=document.createElement('button'); btnDL.className='btn'; btnDL.textContent='Download'; btnDL.onclick=()=>downloadBlob(it.blob, it.name||'image.webp');
+    const btnDel=document.createElement('button'); btnDel.className='btn ghost'; btnDel.textContent='Delete'; btnDel.onclick=async()=>{ await deleteGallery(it.id); refreshGallery(); };
+    right.append(btnDL, btnDel); meta.append(left, right);
+    wrap.append(img, meta); return wrap;
+  }
+
+  // ---------- Footer year ----------
+  $('#year').textContent = new Date().getFullYear();
+
+  // ---------- Startup ----------
+  function selfTests(){
+    try{
+      console.assert(formatBytes(0)==='0 B', 'format 0');
+      console.assert(formatBytes(1024)==='1.0 KB', 'format 1KB');
+      console.assert(formatBytes(1048576)==='1.00 MB', 'format 1MB');
+      console.log('✅ basic self-tests passed');
+    }catch(e){ console.warn('Self-test fail', e); }
+  }
+  selfTests();
+
+  // Expose some actions for debugging in console
+  window._app = { state, refreshGallery };
+  </script>
+</body>
+</html>

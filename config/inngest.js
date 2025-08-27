@@ -5,7 +5,7 @@ import User from "@/models/User";
 // Create a client to send and receive events
 export const inngest = new Inngest({ id: "my-app" });
 
-export const syncUserCreation = inngest.createFuntion(
+export const syncUserCreation = inngest.createFunction( // Corrected here
    { id: 'sync-user-from-clerk' },
    { event: 'clerk/user.created' },
    async ({ event, step }) => {
@@ -21,7 +21,6 @@ export const syncUserCreation = inngest.createFuntion(
       return { success: true };
    }
 )
-
 export const syncUserUpdation = inngest.createFuntion(
    { id: 'sync-user-update-from-clerk' },
    { event: 'clerk/user.updated' },
