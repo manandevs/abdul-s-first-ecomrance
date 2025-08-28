@@ -16,9 +16,10 @@ async function dbConnect() {
          bufferCommands: false,
       }
 
-      cached.promise = mongoose.connect(`${process.env.MONGODB_URI}/quickchart`, opts).then((mongoose) => {
-         return mongoose
-      })
+      cached.promise = mongoose.connect(`${process.env.MONGODB_URI}/quickchart`, opts)
+         .then((mongoose) => {
+            return mongoose
+         })
    }
    try {
       cached.conn = await cached.promise
